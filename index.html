@@ -130,6 +130,11 @@
   @media (max-width: 640px) {
     .grid { grid-template-columns: 1fr; }
     .nav-item span { display: none; }
+    .flow-chart { flex-direction: column; align-items: stretch; }
+    .flow-arrow {
+      transform: rotate(90deg);
+      margin: 10px auto;
+    }
   }
 
   /* SUMMARY CARD */
@@ -142,49 +147,58 @@
     grid-column: 1 / -1;
   }
 
-  .timer-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  .timer-btn {
-    background: var(--blue);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 5px 12px;
-    font-size: 12px;
-    font-family: var(--font);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .timer-bar-bg {
-    flex: 1;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .timer-bar {
-    height: 100%;
-    background: var(--blue);
-    width: 100%;
-    border-radius: 2px;
-  }
-
-  .timer-label {
-    font-size: 12px;
-    color: var(--text3);
-    min-width: 30px;
-    text-align: right;
-  }
-
   .summary p { font-size: 14px; color: var(--text2); line-height: 1.7; }
   .summary p strong { color: var(--text); font-weight: 600; }
+  .summary p strong { color: var(--text); font-weight: 600; }
+
+  .flow-chart {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 12px 0;
+  }
+
+  .flow-step {
+    min-width: 160px;
+    max-width: 220px;
+    padding: 16px 14px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    box-shadow: 0 18px 40px rgba(19, 38, 77, 0.06);
+    background: #f9fbff;
+    text-align: center;
+  }
+
+  .flow-step strong {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .flow-step p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .flow-arrow {
+    font-size: 24px;
+    color: var(--text3);
+    font-weight: 700;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .flow-step.blue { background: #e8f0fd; border-color: #c7d8f8; color: var(--blue); }
+  .flow-step.green { background: #e6f4ec; border-color: #b7dcce; color: var(--green); }
+  .flow-step.orange { background: #fef3e6; border-color: #f3d7b2; color: var(--orange); }
+  .flow-step.gray { background: #f4f4f4; border-color: #dcdcdc; color: var(--gray); }
+  .flow-step.red { background: #fdecea; border-color: #f7c5be; color: var(--red); }
 
   /* TABLE CARD */
   .card {
@@ -327,11 +341,6 @@
     <div class="grid">
 
       <div class="summary">
-        <div class="timer-row">
-          <button class="timer-btn" onclick="startTimer(this,70)">▶ Start Timer (70s)</button>
-          <div class="timer-bar-bg"><div class="timer-bar" id="tb-1"></div></div>
-          <span class="timer-label" id="tl-1">70s</span>
-        </div>
         <p>A <strong>Symbol Table</strong> is a data structure used by a compiler to store information about every identifier — variables, functions, and arrays — found in source code. It records each identifier's <strong>name, type, scope,</strong> and <strong>memory location</strong>. Without it, the compiler cannot verify logical correctness. It is the backbone of <strong>semantic analysis</strong>.</p>
       </div>
 
@@ -375,26 +384,37 @@
     <div class="grid">
 
       <div class="summary" style="border-left-color: var(--green);">
-        <div class="timer-row">
-          <button class="timer-btn" style="background:var(--green);" onclick="startTimer(this,70)">▶ Start Timer (70s)</button>
-          <div class="timer-bar-bg"><div class="timer-bar" style="background:var(--green);" id="tb-2"></div></div>
-          <span class="timer-label" id="tl-2">70s</span>
-        </div>
         <p>The symbol table is built through a <strong>five-step pipeline</strong>: source code is tokenized, parsed for declarations, identifiers are stored with their attributes, the table is displayed, and finally used for <strong>semantic validation</strong>. Each step feeds the next.</p>
       </div>
 
       <div class="card full">
         <div class="card-title">Pipeline Overview</div>
-        <table>
-          <thead><tr><th>Step</th><th>Name</th><th>Action</th><th>Input</th><th>Output</th></tr></thead>
-          <tbody>
-            <tr><td><span class="badge b-blue">1</span></td><td class="blue">Lexical Analysis</td><td>Tokenize source code</td><td>Raw source</td><td>Token stream</td></tr>
-            <tr><td><span class="badge b-green">2</span></td><td class="green">Parsing</td><td>Identify declarations and uses</td><td>Token stream</td><td>Syntax tree</td></tr>
-            <tr><td><span class="badge b-orange">3</span></td><td class="orange">Store Identifiers</td><td>Insert name, type, scope, address</td><td>Declarations</td><td>Populated symbol table</td></tr>
-            <tr><td><span class="badge b-gray">4</span></td><td class="gray">Display Table</td><td>Render structured tabular view</td><td>Symbol table</td><td>Readable output</td></tr>
-            <tr><td><span class="badge b-red">5</span></td><td class="red">Semantic Analysis</td><td>Lookup identifiers, check types</td><td>Table + AST</td><td>Errors or verified code</td></tr>
-          </tbody>
-        </table>
+        <div class="flow-chart">
+          <div class="flow-step blue">
+            <strong>1. Lexical Analysis</strong>
+            <p>Tokenize raw source code into a stream of tokens.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">
+            <strong>2. Parsing</strong>
+            <p>Analyze tokens and build the syntax structure.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step orange">
+            <strong>3. Store Identifiers</strong>
+            <p>Insert names, types, scopes, and addresses into the symbol table.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step gray">
+            <strong>4. Display Table</strong>
+            <p>Render the populated symbol table for lookup and review.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step red">
+            <strong>5. Semantic Analysis</strong>
+            <p>Lookup identifiers, validate types, and catch semantic errors.</p>
+          </div>
+        </div>
       </div>
 
       <div class="card full">
@@ -423,11 +443,6 @@
     <div class="grid">
 
       <div class="summary" style="border-left-color: var(--orange);">
-        <div class="timer-row">
-          <button class="timer-btn" style="background:var(--orange);" onclick="startTimer(this,70)">▶ Start Timer (70s)</button>
-          <div class="timer-bar-bg"><div class="timer-bar" style="background:var(--orange);" id="tb-3"></div></div>
-          <span class="timer-label" id="tl-3">70s</span>
-        </div>
         <p>Scope defines <strong>where an identifier is valid</strong>. The compiler enters a new scope on <code class="code">{</code> and exits on <code class="code">}</code>. Three levels exist: <strong>global, function,</strong> and <strong>block</strong>. Accessing a variable outside its scope causes a lookup failure and a compiler error.</p>
       </div>
 
@@ -496,11 +511,6 @@
     <div class="grid">
 
       <div class="summary" style="border-left-color: var(--red);">
-        <div class="timer-row">
-          <button class="timer-btn" style="background:var(--red);" onclick="startTimer(this,70)">▶ Start Timer (70s)</button>
-          <div class="timer-bar-bg"><div class="timer-bar" style="background:var(--red);" id="tb-4"></div></div>
-          <span class="timer-label" id="tl-4">70s</span>
-        </div>
         <p>Once built, the symbol table is used to catch four types of <strong>semantic errors</strong>: undeclared variables, redeclarations, type mismatches, and scope violations. These are invisible to a syntax checker but immediately detectable through <strong>symbol table lookups</strong>.</p>
       </div>
 
@@ -579,37 +589,6 @@
   sections.forEach(s => obs.observe(s));
 
   function goTo(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-
-  const timers = {};
-  function startTimer(btn, secs) {
-    const row = btn.parentElement;
-    const bar = row.querySelector('.timer-bar');
-    const lbl = row.querySelector('.timer-label');
-    const key = bar.id;
-    if (timers[key]) {
-      clearInterval(timers[key]);
-      bar.style.width = '100%'; bar.style.background = '';
-      lbl.textContent = secs + 's';
-      btn.textContent = '▶ Start Timer (70s)';
-      delete timers[key]; return;
-    }
-    let rem = secs;
-    btn.textContent = '■ Stop';
-    bar.style.transition = 'none';
-    bar.style.width = '100%';
-    timers[key] = setInterval(() => {
-      rem--;
-      bar.style.transition = 'width 1s linear';
-      bar.style.width = (rem / secs * 100) + '%';
-      lbl.textContent = rem + 's';
-      if (rem <= 10) bar.style.background = '#c0392b';
-      if (rem <= 0) {
-        clearInterval(timers[key]); delete timers[key];
-        btn.textContent = '✓ Done'; btn.style.background = '#1e8a4c';
-        lbl.textContent = '0s';
-      }
-    }, 1000);
-  }
 </script>
 </body>
 </html>
