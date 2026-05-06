@@ -3,765 +3,969 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Symbol Table Implementation</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Symbol Tables — Compiler Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f5f5;
-    --white: #ffffff;
-    --border: #e0e0e0;
-    --text: #1a1a1a;
-    --text2: #555555;
-    --text3: #888888;
-    --blue: #1a73e8;
-    --blue-light: #e8f0fd;
-    --green: #1e8a4c;
-    --green-light: #e6f4ec;
-    --red: #c0392b;
-    --red-light: #fdecea;
-    --orange: #e67e22;
-    --orange-light: #fef3e6;
-    --gray: #555555;
-    --gray-light: #f0f0f0;
-    --font: 'Inter', sans-serif;
+    --bg: #f5f2eb;
+    --surface: #ffffff;
+    --surface2: #eef0f5;
+    --border: #d4cfc6;
+    --text: #1a1a2e;
+    --muted: #6b6778;
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --amber: #d97706;
+    --amber-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --purple: #7c3aed;
+    --purple-light: #ede9fe;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
+    font-family: var(--sans);
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font);
-    font-size: 14px;
     line-height: 1.6;
-  }
-
-  /* HEADER */
-  .header {
-    background: var(--white);
-    border-bottom: 2px solid var(--blue);
-    padding: 32px 24px 24px;
-    text-align: center;
-  }
-
-  .header h1 {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
-
-  .header p {
-    color: var(--text2);
-    font-size: 14px;
   }
 
   /* NAV */
-  .nav {
+  nav {
+    background: var(--text);
+    color: white;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    padding: 10px 16px;
     flex-wrap: wrap;
   }
-
-  .nav-item {
+  nav .logo { font-family: var(--mono); font-size: 15px; color: #a5b4fc; font-weight: 600; margin-right: auto; }
+  nav button {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.75);
     padding: 6px 14px;
     border-radius: 4px;
-    border: 1px solid var(--border);
-    cursor: pointer;
+    font-family: var(--sans);
     font-size: 13px;
-    color: var(--text2);
-    background: var(--white);
-    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
   }
-
-  .nav-item.active {
-    background: var(--blue);
+  nav button.active, nav button:focus {
+    background: #2563eb;
+    border-color: #2563eb;
     color: white;
-    border-color: var(--blue);
   }
 
-  /* MAIN */
-  .main { max-width: 960px; margin: 0 auto; padding: 32px 24px 60px; }
+  /* SECTIONS */
+  section { display: none; padding: 40px 32px; max-width: 960px; margin: 0 auto; }
+  section.active { display: block; }
 
-  .section {
-    margin-bottom: 52px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
+  h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: var(--blue); }
+  h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+  p { color: #374151; margin-bottom: 14px; font-size: 15px; }
+
+  .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 28px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
   }
-  .section.visible { opacity: 1; transform: translateY(0); }
-
-  /* SECTION HEADER */
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 18px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
   }
+  .attr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    border-left: 4px solid var(--blue);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  .attr-card.green { border-left-color: var(--green); }
+  .attr-card.amber { border-left-color: var(--amber); }
+  .attr-card.purple { border-left-color: var(--purple); }
+  .attr-card .label { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+  .attr-card .value { font-size: 15px; font-weight: 600; }
+  .attr-card .detail { font-size: 13px; color: var(--muted); margin-top: 6px; display: none; }
+  .attr-card.open .detail { display: block; }
+  .attr-card .toggle { font-size: 12px; color: var(--blue); margin-top: 8px; }
 
-  .section-num {
-    background: var(--blue);
+  /* PIPELINE */
+  .pipeline { display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; margin: 24px 0; }
+  .step {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+    text-align: center;
+  }
+  .step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--blue);
+    font-size: 18px;
+    z-index: 1;
+  }
+  .step:first-child { border-radius: 8px 0 0 8px; }
+  .step:last-child { border-radius: 0 8px 8px 0; }
+  .step.active { background: var(--blue-light); border-color: var(--blue); }
+  .step-num { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .step-title { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .step-detail {
+    background: var(--blue-light);
+    border: 1px solid var(--blue);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-top: 8px;
+    display: none;
+    font-size: 14px;
+  }
+  .step-detail.visible { display: block; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); }
+  th {
+    background: var(--text);
     color: white;
+    padding: 12px 14px;
+    text-align: left;
+    font-family: var(--mono);
     font-size: 12px;
     font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 4px;
-    white-space: nowrap;
-  }
-
-  .section-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  /* GRID */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .full { grid-column: 1 / -1; }
-  @media (max-width: 640px) {
-    .grid { grid-template-columns: 1fr; }
-    .nav-item span { display: none; }
-    .flow-chart { flex-direction: column; align-items: stretch; }
-    .flow-arrow {
-      transform: rotate(90deg);
-      margin: 10px auto;
-    }
-  }
-
-  /* SUMMARY CARD */
-  .summary {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--blue);
-    border-radius: 6px;
-    padding: 16px 18px;
-    grid-column: 1 / -1;
-  }
-
-  .summary p { font-size: 14px; color: var(--text2); line-height: 1.7; }
-  .summary p strong { color: var(--text); font-weight: 600; }
-  .summary p strong { color: var(--text); font-weight: 600; }
-
-  .flow-chart {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 12px 0;
-  }
-
-  .flow-step {
-    min-width: 160px;
-    max-width: 220px;
-    padding: 16px 14px;
-    border-radius: 14px;
-    border: 1px solid transparent;
-    box-shadow: 0 18px 40px rgba(19, 38, 77, 0.06);
-    background: #f9fbff;
-    text-align: center;
-  }
-
-  .flow-step strong {
-    display: block;
-    font-size: 13px;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .flow-step p {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text2);
-    line-height: 1.5;
-  }
-
-  .flow-arrow {
-    font-size: 24px;
-    color: var(--text3);
-    font-weight: 700;
-    min-width: 28px;
-    text-align: center;
-  }
-
-  .flow-step.blue { background: #e8f0fd; border-color: #c7d8f8; color: var(--blue); }
-  .flow-step.green { background: #e6f4ec; border-color: #b7dcce; color: var(--green); }
-  .flow-step.orange { background: #fef3e6; border-color: #f3d7b2; color: var(--orange); }
-  .flow-step.gray { background: #f4f4f4; border-color: #dcdcdc; color: var(--gray); }
-  .flow-step.red { background: #fdecea; border-color: #f7c5be; color: var(--red); }
-
-  .interactive-panel {
-    display: grid;
-    gap: 16px;
-  }
-
-  .code-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .code-btn {
-    border: 1px solid var(--border);
-    background: var(--white);
-    color: var(--text);
-    border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .code-btn.active,
-  .code-btn:hover {
-    border-color: var(--blue);
-    background: var(--blue-light);
-    color: var(--blue);
-  }
-
-  .code-preview {
-    background: #f4f4f4;
-    border: 1px solid #dcdcdc;
-    border-radius: 8px;
-    padding: 14px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    color: #222;
-    white-space: pre-wrap;
-    line-height: 1.6;
-  }
-
-  .symbol-output {
-    overflow-x: auto;
-  }
-
-  .symbol-output table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-
-  .symbol-output th,
-  .symbol-output td {
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    text-align: left;
-    vertical-align: middle;
-  }
-
-  .symbol-output th {
-    background: #f5f7ff;
-    color: var(--blue);
-    font-weight: 700;
-  }
-
-  .symbol-output td {
-    color: var(--text2);
-  }
-
-  .symbol-output td span {
-    display: inline-flex;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  .symbol-output td .type { background: #e8f0fd; color: var(--blue); }
-  .symbol-output td .scope { background: #e6f4ec; color: var(--green); }
-  .symbol-output td .info { background: #fdecea; color: var(--red); }
-
-  /* TABLE CARD */
-  .card {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px;
-    overflow-x: auto;
-  }
-
-  .card-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 12px;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-
-  /* TABLES */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-
-  thead tr {
-    background: #f0f4ff;
-  }
-
-  th {
-    padding: 8px 12px;
-    text-align: left;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--blue);
-    border-bottom: 2px solid #c7d8f8;
-    white-space: nowrap;
-  }
-
-  td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text2);
-    vertical-align: middle;
-  }
-
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); }
   tr:last-child td { border-bottom: none; }
-  tr:nth-child(even) td { background: #fafafa; }
+  tr.highlight td { background: var(--blue-light); }
+  tr { cursor: pointer; transition: background 0.15s; }
+  tr.highlight { cursor: default; }
 
-  /* COLOUR HELPERS */
-  .blue   { color: var(--blue);   font-weight: 500; }
-  .green  { color: var(--green);  font-weight: 500; }
-  .red    { color: var(--red);    font-weight: 500; }
-  .orange { color: var(--orange); font-weight: 500; }
-  .gray   { color: var(--gray);   font-weight: 500; }
-
-  /* BADGES */
   .badge {
     display: inline-block;
-    padding: 2px 9px;
-    border-radius: 3px;
+    padding: 2px 8px;
+    border-radius: 12px;
     font-size: 12px;
+    font-family: var(--mono);
     font-weight: 600;
-    white-space: nowrap;
   }
-  .b-blue   { background: var(--blue-light);   color: var(--blue); }
-  .b-green  { background: var(--green-light);  color: var(--green); }
-  .b-red    { background: var(--red-light);    color: var(--red); }
-  .b-orange { background: var(--orange-light); color: var(--orange); }
-  .b-gray   { background: var(--gray-light);   color: var(--gray); }
+  .badge.global { background: var(--blue-light); color: var(--blue); }
+  .badge.local { background: var(--green-light); color: var(--green); }
+  .badge.param { background: var(--amber-light); color: var(--amber); }
 
-  /* CODE SNIPPET */
-  .code {
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    background: #f4f4f4;
-    border: 1px solid #ddd;
-    padding: 2px 6px;
-    border-radius: 3px;
-    color: #333;
+  .row-info {
+    background: var(--surface2);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text);
+    display: none;
+    border-bottom: 1px solid var(--border);
   }
+  .row-info.visible { display: table-row; }
+  .row-info td { color: #374151; font-style: italic; }
 
-  /* SCOPE NESTING */
-  .scope-wrap { font-size: 13px; }
-  .sblock {
-    border: 1px solid;
-    border-radius: 6px;
-    padding: 10px 12px;
+  /* MIND MAP SVG */
+  .mindmap-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .mindmap-wrap svg { width: 100%; height: auto; display: block; }
+
+  /* SEMANTIC CHECKS */
+  .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 20px 0; }
+  .check-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
   }
-  .slabel {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 7px;
+  .check-head { padding: 14px 16px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .check-head.red { background: var(--red-light); color: var(--red); }
+  .check-head.amber { background: var(--amber-light); color: var(--amber); }
+  .check-head.green { background: var(--green-light); color: var(--green); }
+  .check-head.purple { background: var(--purple-light); color: var(--purple); }
+  .check-body { padding: 14px 16px; background: var(--surface); font-size: 13px; color: #374151; display: none; }
+  .check-body.open { display: block; }
+  .code-block { font-family: var(--mono); background: #1e1e2e; color: #cdd6f4; padding: 10px 12px; border-radius: 6px; font-size: 12px; margin-top: 8px; line-height: 1.7; }
+  .code-block .err { color: #f38ba8; }
+  .code-block .ok { color: #a6e3a1; }
+  .code-block .kw { color: #cba6f7; }
+  .code-block .id { color: #89dceb; }
+
+  /* HOME */
+  .hero { text-align: center; padding: 48px 24px 32px; }
+  .hero h1 { font-size: 34px; }
+  .hero .subtitle { font-size: 17px; max-width: 520px; margin: 10px auto 32px; }
+  .nav-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 8px; }
+  .nav-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 20px;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    text-align: left;
   }
-  .stags { display: flex; flex-wrap: wrap; gap: 5px; }
-  .stag {
+  .nav-card:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .nav-card .icon { font-size: 26px; margin-bottom: 10px; }
+  .nav-card .nc-title { font-weight: 600; font-size: 15px; }
+  .nav-card .nc-desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .tag {
     display: inline-block;
-    padding: 2px 9px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: 600;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-right: 6px;
+    background: var(--blue-light);
+    color: var(--blue);
+    margin-bottom: 16px;
   }
 
-  /* FOOTER */
-  .footer {
-    text-align: center;
-    padding: 24px;
-    border-top: 1px solid var(--border);
-    font-size: 12px;
-    color: var(--text3);
-    background: var(--white);
+  .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; gap: 8px; }
+    section { padding: 24px 16px; }
+    .step:not(:last-child)::after { display: none; }
+    .step { border-radius: 6px !important; margin-bottom: 4px; }
+    .pipeline { gap: 4px; flex-direction: column; }
   }
 </style>
 </head>
 <body>
 
-<header class="header">
-  <h1>Symbol Table Implementation</h1>
-  <p>Compiler Design — Syllabus Concept: Semantic Analysis</p>
-</header>
-
-<nav class="nav">
-  <button class="nav-item active" onclick="goTo('s1')">01 — What is a Symbol Table</button>
-  <button class="nav-item" onclick="goTo('s2')">02 — The 5-Step Pipeline</button>
-  <button class="nav-item" onclick="goTo('s3')">03 — Scope Management</button>
-  <button class="nav-item" onclick="goTo('s4')">04 — Semantic Analysis</button>
+<nav>
+  <span class="logo">{ Symbol Table }</span>
+  <button class="active" onclick="show('home', this)">Home</button>
+  <button onclick="show('what', this)">What is it?</button>
+  <button onclick="show('process', this)">How it Works</button>
+  <button onclick="show('structure', this)">Structure</button>
+  <button onclick="show('semantic', this)">Why it Matters</button>
 </nav>
 
-<main class="main">
-
-  <!-- SECTION 1 -->
-  <section class="section" id="s1" data-nav="0">
-    <div class="section-header">
-      <span class="section-num">01</span>
-      <span class="section-title">What is a Symbol Table?</span>
+<!-- HOME -->
+<section id="home" class="active">
+  <div class="hero">
+    <div class="tag">Compiler Theory</div>
+    <h1>Understanding Symbol Tables</h1>
+    <p class="subtitle">An interactive guide to how compilers track every variable, function, and identifier in your code.</p>
+  </div>
+  <div class="nav-cards">
+    <div class="nav-card" tabindex="0" onclick="show('what', null)" onkeydown="if(event.key==='Enter')show('what',null)">
+      <div class="icon">📖</div>
+      <div class="nc-title">What is a Symbol Table?</div>
+      <div class="nc-desc">The compiler's organised notebook for all identifiers.</div>
     </div>
-    <div class="grid">
+    <div class="nav-card" tabindex="0" onclick="show('process', null)" onkeydown="if(event.key==='Enter')show('process',null)">
+      <div class="icon">⚙️</div>
+      <div class="nc-title">How it Works</div>
+      <div class="nc-desc">5-step pipeline from source code to verified output.</div>
+    </div>
+    <div class="nav-card" tabindex="0" onclick="show('structure', null)" onkeydown="if(event.key==='Enter')show('structure',null)">
+      <div class="icon">🗂️</div>
+      <div class="nc-title">Table Structure</div>
+      <div class="nc-desc">Live table with real identifiers — click rows to explore.</div>
+    </div>
+    <div class="nav-card" tabindex="0" onclick="show('semantic', null)" onkeydown="if(event.key==='Enter')show('semantic',null)">
+      <div class="icon">🔍</div>
+      <div class="nc-title">Why it Matters</div>
+      <div class="nc-desc">Semantic analysis — catching errors before runtime.</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="card">
+    <h3>Quick Concept</h3>
+    <p>Every time you declare a variable like <code style="font-family:var(--mono);background:var(--surface2);padding:2px 6px;border-radius:4px">int x = 5;</code>, the compiler writes it into a Symbol Table — recording its name, type, scope, and memory address. This table is the compiler's memory.</p>
+    <p style="margin-bottom:0">Without it, a compiler cannot verify your code is correct or generate reliable output.</p>
+  </div>
+</section>
 
-      <div class="summary">
-        <p>A <strong>Symbol Table</strong> is a data structure used by a compiler to store information about every identifier — variables, functions, and arrays — found in source code. It records each identifier's <strong>name, type, scope,</strong> and <strong>memory location</strong>. Without it, the compiler cannot verify logical correctness. It is the backbone of <strong>semantic analysis</strong>.</p>
-      </div>
+<!-- WHAT IS IT -->
+<section id="what">
+  <div class="tag">Section 1</div>
+  <h1>What is a Symbol Table?</h1>
+  <p class="subtitle">A data structure the compiler builds while reading your source code — like an organised notebook.</p>
 
-      <div class="card">
-        <div class="card-title">Stored Attributes</div>
-        <table>
-          <thead><tr><th>Attribute</th><th>Description</th><th>Example</th></tr></thead>
-          <tbody>
-            <tr><td class="blue">Name</td><td>Identifier label</td><td>x, sum, add</td></tr>
-            <tr><td class="green">Type</td><td>Data type</td><td>int, float, char</td></tr>
-            <tr><td class="orange">Scope</td><td>Visibility region</td><td>Global, Fn: add</td></tr>
-            <tr><td class="gray">Address</td><td>Memory location</td><td>1000, 1004</td></tr>
-            <tr><td class="red">Info</td><td>Additional metadata</td><td>Variable, Param</td></tr>
-          </tbody>
-        </table>
-      </div>
+  <div class="mindmap-wrap" style="margin-bottom:24px">
+    <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, sans-serif">
+      <!-- Lines -->
+      <line x1="380" y1="180" x2="180" y2="80" stroke="#2563eb" stroke-width="2"/>
+      <line x1="380" y1="180" x2="580" y2="80" stroke="#16a34a" stroke-width="2"/>
+      <line x1="380" y1="180" x2="580" y2="280" stroke="#d97706" stroke-width="2"/>
+      <line x1="380" y1="180" x2="180" y2="280" stroke="#7c3aed" stroke-width="2"/>
+      <!-- Centre -->
+      <rect x="290" y="145" width="180" height="70" rx="10" fill="#1a1a2e"/>
+      <text x="380" y="176" text-anchor="middle" fill="white" font-weight="600" font-size="14">Symbol Table</text>
+      <text x="380" y="195" text-anchor="middle" fill="#a5b4fc" font-size="11">compiler's memory</text>
+      <!-- Nodes -->
+      <rect x="80" y="48" width="200" height="64" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="180" y="76" text-anchor="middle" fill="#1e40af" font-weight="600" font-size="13">Name</text>
+      <text x="180" y="95" text-anchor="middle" fill="#374151" font-size="12">Identifier label (x, y, sum)</text>
 
-      <div class="card full">
-        <div class="card-title">Build a Symbol Table</div>
-        <div class="interactive-panel">
-          <div class="code-buttons">
-            <button class="code-btn active" onclick="chooseSnippet(0)">int x = 10;</button>
-            <button class="code-btn" onclick="chooseSnippet(1)">int add(int a, int b) { int sum = a + b; }</button>
-            <button class="code-btn" onclick="chooseSnippet(2)">float pi = 3.14; char c = 'A';</button>
-          </div>
-          <div class="code-preview" id="snippet-code">int x = 10;</div>
-          <div class="symbol-output">
-            <table id="symbol-output-table">
-              <thead><tr><th>Name</th><th>Type</th><th>Scope</th><th>Address</th><th>Info</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+      <rect x="480" y="48" width="200" height="64" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="580" y="76" text-anchor="middle" fill="#14532d" font-weight="600" font-size="13">Type</text>
+      <text x="580" y="95" text-anchor="middle" fill="#374151" font-size="12">int, float, char…</text>
+
+      <rect x="480" y="248" width="200" height="64" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+      <text x="580" y="276" text-anchor="middle" fill="#92400e" font-weight="600" font-size="13">Memory Location</text>
+      <text x="580" y="295" text-anchor="middle" fill="#374151" font-size="12">Address where value lives</text>
+
+      <rect x="80" y="248" width="200" height="64" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+      <text x="180" y="276" text-anchor="middle" fill="#4c1d95" font-weight="600" font-size="13">Scope</text>
+      <text x="180" y="295" text-anchor="middle" fill="#374151" font-size="12">Global / Local / Function</text>
+    </svg>
+  </div>
+
+  <p>A Symbol Table is a data structure the compiler builds throughout the process of reading source code. Every time it encounters a new declaration — a variable, function, or parameter — it records it with four key attributes.</p>
+
+  <h2>4 Key Attributes</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Click each card to expand details.</p>
+  <div class="card-grid">
+    <div class="attr-card" onclick="toggleCard(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCard(this)">
+      <div class="label">01 — Name</div>
+      <div class="value">Identifier</div>
+      <div class="toggle">▸ Show more</div>
+      <div class="detail">The label used in source code — e.g. <code style="font-family:var(--mono)">x</code>, <code style="font-family:var(--mono)">sum</code>, <code style="font-family:var(--mono)">add</code>. The compiler uses this to look up anything it encounters later.</div>
+    </div>
+    <div class="attr-card green" onclick="toggleCard(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCard(this)">
+      <div class="label">02 — Type</div>
+      <div class="value">Data Type</div>
+      <div class="toggle">▸ Show more</div>
+      <div class="detail">What kind of data the identifier holds — <code style="font-family:var(--mono)">int</code>, <code style="font-family:var(--mono)">float</code>, <code style="font-family:var(--mono)">char</code>. Essential for detecting type mismatch errors.</div>
+    </div>
+    <div class="attr-card amber" onclick="toggleCard(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCard(this)">
+      <div class="label">03 — Scope</div>
+      <div class="value">Visibility</div>
+      <div class="toggle">▸ Show more</div>
+      <div class="detail">Where in the program the identifier is valid. Global scope means accessible everywhere; function scope means it only exists inside that function block.</div>
+    </div>
+    <div class="attr-card purple" onclick="toggleCard(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCard(this)">
+      <div class="label">04 — Memory</div>
+      <div class="value">Address</div>
+      <div class="toggle">▸ Show more</div>
+      <div class="detail">The exact memory address where the identifier's value is stored at runtime. E.g. <code style="font-family:var(--mono)">x → 0x1000</code>, <code style="font-family:var(--mono)">y → 0x1004</code>.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>The Compiler Without a Symbol Table</h3>
+    <p style="margin-bottom:0">Without a symbol table, a compiler would be working completely blind — unable to verify if a variable was declared, check its type, or find its memory location. Every check it performs relies on this table.</p>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process">
+  <div class="tag">Section 2</div>
+  <h1>How It Works — 5 Steps</h1>
+  <p class="subtitle">From raw source code to a fully verified, error-checked program. Click each step to explore.</p>
+
+  <div class="pipeline">
+    <div class="step" onclick="selectStep(0)" tabindex="0" onkeydown="if(event.key==='Enter')selectStep(0)">
+      <div class="step-num">Step 1</div>
+      <div class="step-title">Lexical Analysis</div>
+    </div>
+    <div class="step" onclick="selectStep(1)" tabindex="0" onkeydown="if(event.key==='Enter')selectStep(1)">
+      <div class="step-num">Step 2</div>
+      <div class="step-title">Parsing</div>
+    </div>
+    <div class="step" onclick="selectStep(2)" tabindex="0" onkeydown="if(event.key==='Enter')selectStep(2)">
+      <div class="step-num">Step 3</div>
+      <div class="step-title">Store Identifiers</div>
+    </div>
+    <div class="step" onclick="selectStep(3)" tabindex="0" onkeydown="if(event.key==='Enter')selectStep(3)">
+      <div class="step-num">Step 4</div>
+      <div class="step-title">Display Table</div>
+    </div>
+    <div class="step" onclick="selectStep(4)" tabindex="0" onkeydown="if(event.key==='Enter')selectStep(4)">
+      <div class="step-num">Step 5</div>
+      <div class="step-title">Semantic Analysis</div>
+    </div>
+  </div>
+
+  <div class="step-detail" id="step-detail">Select a step above to learn more.</div>
+
+  <hr class="divider">
+
+  <h2>Vertical Pipeline Mind Map</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Each stage feeds directly into the next — from raw text to a verified, error-free program.</p>
+  <div class="mindmap-wrap" style="margin-bottom:28px">
+    <svg viewBox="0 0 500 620" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, sans-serif">
+      <defs>
+        <marker id="varr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#2563eb"/>
+        </marker>
+      </defs>
+      <!-- Node 1 -->
+      <rect x="150" y="20" width="200" height="64" rx="9" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <text x="250" y="47" text-anchor="middle" fill="#1e40af" font-weight="600" font-size="13">1. Lexical Analysis</text>
+      <text x="250" y="66" text-anchor="middle" fill="#374151" font-size="11">Tokenise the source code</text>
+      <!-- Arrow -->
+      <line x1="250" y1="84" x2="250" y2="108" stroke="#2563eb" stroke-width="2" marker-end="url(#varr)"/>
+      <!-- Side note 1 -->
+      <rect x="360" y="28" width="130" height="48" rx="6" fill="#f8fafc" stroke="#d4cfc6" stroke-width="1"/>
+      <text x="425" y="48" text-anchor="middle" fill="#6b6778" font-size="10">Keywords: int, return</text>
+      <text x="425" y="62" text-anchor="middle" fill="#6b6778" font-size="10">Identifiers: x, y, sum</text>
+      <line x1="350" y1="52" x2="362" y2="52" stroke="#d4cfc6" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Node 2 -->
+      <rect x="150" y="110" width="200" height="64" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="250" y="137" text-anchor="middle" fill="#14532d" font-weight="600" font-size="13">2. Parsing</text>
+      <text x="250" y="156" text-anchor="middle" fill="#374151" font-size="11">Understand code structure</text>
+      <!-- Arrow -->
+      <line x1="250" y1="174" x2="250" y2="198" stroke="#2563eb" stroke-width="2" marker-end="url(#varr)"/>
+      <!-- Side note 2 -->
+      <rect x="10" y="118" width="130" height="48" rx="6" fill="#f8fafc" stroke="#d4cfc6" stroke-width="1"/>
+      <text x="75" y="138" text-anchor="middle" fill="#6b6778" font-size="10">Finds declarations</text>
+      <text x="75" y="152" text-anchor="middle" fill="#6b6778" font-size="10">vs assignments</text>
+      <line x1="140" y1="142" x2="152" y2="142" stroke="#d4cfc6" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Node 3 -->
+      <rect x="150" y="200" width="200" height="64" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+      <text x="250" y="227" text-anchor="middle" fill="#92400e" font-weight="600" font-size="13">3. Store Identifiers</text>
+      <text x="250" y="246" text-anchor="middle" fill="#374151" font-size="11">Populate the symbol table</text>
+      <!-- Arrow -->
+      <line x1="250" y1="264" x2="250" y2="288" stroke="#2563eb" stroke-width="2" marker-end="url(#varr)"/>
+      <!-- Side note 3 -->
+      <rect x="360" y="208" width="130" height="48" rx="6" fill="#f8fafc" stroke="#d4cfc6" stroke-width="1"/>
+      <text x="425" y="228" text-anchor="middle" fill="#6b6778" font-size="10">Name, Type, Scope</text>
+      <text x="425" y="242" text-anchor="middle" fill="#6b6778" font-size="10">Memory address stored</text>
+      <line x1="350" y1="232" x2="362" y2="232" stroke="#d4cfc6" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Node 4 -->
+      <rect x="150" y="290" width="200" height="64" rx="9" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+      <text x="250" y="317" text-anchor="middle" fill="#4c1d95" font-weight="600" font-size="13">4. Display Table</text>
+      <text x="250" y="336" text-anchor="middle" fill="#374151" font-size="11">Structured tabular output</text>
+      <!-- Arrow -->
+      <line x1="250" y1="354" x2="250" y2="378" stroke="#2563eb" stroke-width="2" marker-end="url(#varr)"/>
+      <!-- Side note 4 -->
+      <rect x="10" y="298" width="130" height="48" rx="6" fill="#f8fafc" stroke="#d4cfc6" stroke-width="1"/>
+      <text x="75" y="318" text-anchor="middle" fill="#6b6778" font-size="10">Every identifier</text>
+      <text x="75" y="332" text-anchor="middle" fill="#6b6778" font-size="10">visible and inspectable</text>
+      <line x1="140" y1="322" x2="152" y2="322" stroke="#d4cfc6" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Node 5 -->
+      <rect x="150" y="380" width="200" height="64" rx="9" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+      <text x="250" y="407" text-anchor="middle" fill="#991b1b" font-weight="600" font-size="13">5. Semantic Analysis</text>
+      <text x="250" y="426" text-anchor="middle" fill="#374151" font-size="11">Catch errors using the table</text>
+      <!-- Arrow -->
+      <line x1="250" y1="444" x2="250" y2="468" stroke="#2563eb" stroke-width="2" marker-end="url(#varr)"/>
+      <!-- Side note 5 -->
+      <rect x="360" y="388" width="130" height="48" rx="6" fill="#f8fafc" stroke="#d4cfc6" stroke-width="1"/>
+      <text x="425" y="408" text-anchor="middle" fill="#6b6778" font-size="10">Undeclared vars</text>
+      <text x="425" y="422" text-anchor="middle" fill="#6b6778" font-size="10">Type / scope errors</text>
+      <line x1="350" y1="412" x2="362" y2="412" stroke="#d4cfc6" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Terminal -->
+      <rect x="125" y="470" width="250" height="56" rx="9" fill="#1a1a2e"/>
+      <text x="250" y="496" text-anchor="middle" fill="white" font-weight="600" font-size="13">Verified Output Code</text>
+      <text x="250" y="514" text-anchor="middle" fill="#a5b4fc" font-size="11">Correct · Reliable · Ready to run</text>
+    </svg>
+  </div>
+
+  <hr class="divider">
+
+  <h2>What Happens at Each Stage — In Detail</h2>
+  <div class="card">
+    <h3>Stage 1 · Lexical Analysis — Scanning &amp; Tokenising</h3>
+    <p>The compiler reads the program character by character and groups them into <strong>tokens</strong>. A token is the smallest meaningful unit — a keyword like <code style="font-family:var(--mono)">int</code>, a name like <code style="font-family:var(--mono)">x</code>, an operator like <code style="font-family:var(--mono)">=</code>, or a literal like <code style="font-family:var(--mono)">5</code>. The lexer also strips out whitespace and comments, which carry no semantic meaning.</p>
+    <div class="code-block">
+<span class="kw">int</span> <span class="id">x</span> = 5;
+<span style="color:#6b6778;font-size:11px">// tokens: [KEYWORD:int] [IDENT:x] [OP:=] [NUM:5] [SEMI:;]</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Stage 2 · Parsing — Understanding Structure</h3>
+    <p>The parser receives the token stream and applies <strong>grammar rules</strong> to determine what the tokens mean together. It builds a parse tree (or Abstract Syntax Tree) that represents the program's structure. Crucially, it distinguishes between a <em>declaration</em> (<code style="font-family:var(--mono)">int x = 5;</code>) and a <em>usage</em> (<code style="font-family:var(--mono)">x + 1</code>). Only declarations trigger a write to the symbol table.</p>
+    <p style="margin-bottom:0">The parser also tracks nesting — entering a function body pushes a new scope, and exiting it pops that scope back off. This scope stack is what makes local variables possible.</p>
+  </div>
+
+  <div class="card">
+    <h3>Stage 3 · Storing Identifiers — Populating the Table</h3>
+    <p>Each time a declaration is confirmed, the compiler immediately inserts a new row into the symbol table with: the identifier's <strong>name</strong>, its <strong>data type</strong>, the <strong>scope level</strong> it was declared in, and the <strong>memory address</strong> allocated for it. This happens in one atomic operation so the table is always consistent.</p>
+    <p style="margin-bottom:0">If the identifier already exists in the current scope, the compiler raises a <em>redeclaration error</em> rather than overwriting the existing entry.</p>
+  </div>
+
+  <div class="card">
+    <h3>Stage 4 · Displaying the Table — Inspection &amp; Debugging</h3>
+    <p>After parsing completes, the full symbol table can be rendered in a structured tabular form — one row per identifier, columns for every attribute. This output is invaluable for debugging: developers and tools can inspect exactly which identifiers were found, at which scope, and where they live in memory. Many IDEs expose this as a "symbol browser."</p>
+  </div>
+
+  <div class="card" style="margin-bottom:0">
+    <h3>Stage 5 · Semantic Analysis — Using the Table to Catch Errors</h3>
+    <p>This is where the symbol table pays off. Every time an identifier is <em>used</em> (not declared), the compiler looks it up. If it is absent → undeclared error. If the type is incompatible with the operation → type mismatch. If it exists but in a different scope → scope violation. These checks are O(1) lookups because the symbol table is typically implemented as a <strong>hash table</strong> for constant-time access.</p>
+    <p style="margin-bottom:0">Semantic analysis runs hand-in-hand with parsing — errors are surfaced before any machine code is ever emitted, saving runtime crashes entirely.</p>
+  </div>
+</section>
+
+<!-- STRUCTURE -->
+<section id="structure">
+  <div class="tag">Section 3</div>
+  <h1>Symbol Table Structure</h1>
+  <p class="subtitle">A real example table. Click any row to see what that entry means to the compiler.</p>
+
+  <div class="table-wrap">
+    <table id="symtable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Scope</th>
+          <th>Line No.</th>
+          <th>Memory Location</th>
+          <th>Additional Info</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr onclick="toggleRow('r0')" tabindex="0" onkeydown="if(event.key==='Enter')toggleRow('r0')">
+          <td><code style="font-family:var(--mono)">x</code></td>
+          <td>int</td>
+          <td><span class="badge global">Global</span></td>
+          <td>1</td>
+          <td><code style="font-family:var(--mono)">0x1000</code></td>
+          <td>Variable</td>
+        </tr>
+        <tr class="row-info" id="r0"><td colspan="6">
+          <strong>x</strong> is a global integer variable declared on line 1. Being global, it is accessible from anywhere in the program. Stored at memory address 0x1000. No function or block constrains its scope.
+        </td></tr>
+
+        <tr onclick="toggleRow('r1')" tabindex="0" onkeydown="if(event.key==='Enter')toggleRow('r1')">
+          <td><code style="font-family:var(--mono)">y</code></td>
+          <td>int</td>
+          <td><span class="badge global">Global</span></td>
+          <td>2</td>
+          <td><code style="font-family:var(--mono)">0x1004</code></td>
+          <td>Variable</td>
+        </tr>
+        <tr class="row-info" id="r1"><td colspan="6">
+          <strong>y</strong> is a second global integer. Its address (0x1004) is 4 bytes after x — the size of an <code style="font-family:var(--mono)">int</code> on most systems. Memory is allocated sequentially.
+        </td></tr>
+
+        <tr onclick="toggleRow('r2')" tabindex="0" onkeydown="if(event.key==='Enter')toggleRow('r2')">
+          <td><code style="font-family:var(--mono)">sum</code></td>
+          <td>int</td>
+          <td><span class="badge global">Global</span></td>
+          <td>3</td>
+          <td><code style="font-family:var(--mono)">0x1008</code></td>
+          <td>Variable</td>
+        </tr>
+        <tr class="row-info" id="r2"><td colspan="6">
+          <strong>sum</strong> is a global integer intended to store the result of an addition. The compiler records it separately from x and y, so it can ensure type compatibility when the addition happens.
+        </td></tr>
+
+        <tr onclick="toggleRow('r3')" tabindex="0" onkeydown="if(event.key==='Enter')toggleRow('r3')">
+          <td><code style="font-family:var(--mono)">a</code></td>
+          <td>int</td>
+          <td><span class="badge local">Function: add</span></td>
+          <td>6</td>
+          <td><code style="font-family:var(--mono)">0x2000</code></td>
+          <td>Parameter</td>
+        </tr>
+        <tr class="row-info" id="r3"><td colspan="6">
+          <strong>a</strong> is a parameter passed into the function <code style="font-family:var(--mono)">add()</code>. It only exists inside that function — once the function returns, this entry is out of scope. Its memory is on the stack (0x2000).
+        </td></tr>
+
+        <tr onclick="toggleRow('r4')" tabindex="0" onkeydown="if(event.key==='Enter')toggleRow('r4')">
+          <td><code style="font-family:var(--mono)">b</code></td>
+          <td>int</td>
+          <td><span class="badge local">Function: add</span></td>
+          <td>6</td>
+          <td><code style="font-family:var(--mono)">0x2004</code></td>
+          <td>Parameter</td>
+        </tr>
+        <tr class="row-info" id="r4"><td colspan="6">
+          <strong>b</strong> is the second parameter of <code style="font-family:var(--mono)">add()</code>. Like <code style="font-family:var(--mono)">a</code>, it's function-scoped and stack-allocated. The compiler uses both entries to verify that <code style="font-family:var(--mono)">a + b</code> is a valid operation.
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)">
+    <span>Scope legend:</span>
+    <span class="badge global">Global</span> accessible everywhere &nbsp;
+    <span class="badge local">Function</span> local to that function &nbsp;
+    <span class="badge param">Param</span> function parameter
+  </div>
+
+  <hr class="divider">
+  <h2>Column Breakdown</h2>
+  <div class="card-grid">
+    <div class="card" style="margin-bottom:0;border-left:4px solid var(--blue)">
+      <h3>Name</h3>
+      <p style="margin-bottom:0;font-size:13px">The label in source code. Used as lookup key every time the identifier appears.</p>
+    </div>
+    <div class="card" style="margin-bottom:0;border-left:4px solid var(--green)">
+      <h3>Type</h3>
+      <p style="margin-bottom:0;font-size:13px">Enables type-checking — if you add an int to a string, the compiler catches it here.</p>
+    </div>
+    <div class="card" style="margin-bottom:0;border-left:4px solid var(--amber)">
+      <h3>Scope</h3>
+      <p style="margin-bottom:0;font-size:13px">Determines where the identifier is valid. Prevents cross-function variable access.</p>
+    </div>
+    <div class="card" style="margin-bottom:0;border-left:4px solid var(--purple)">
+      <h3>Memory</h3>
+      <p style="margin-bottom:0;font-size:13px">Lets the compiler generate machine code that reads/writes the right address.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <h2>Scope Management — A Closer Look</h2>
+  <p>Scope is arguably the most complex attribute in the symbol table. It determines not just <em>where</em> an identifier was declared, but <em>when</em> it comes into existence and when it ceases to exist. Compilers manage scope using a structure called a <strong>scope stack</strong>.</p>
+
+  <div class="card" style="border-left:4px solid var(--blue)">
+    <h3>The Scope Stack</h3>
+    <p>Every time the compiler enters a new block — a function body, an if statement, a loop — it <strong>pushes</strong> a new scope onto the stack. Every identifier declared inside that block is registered only in that scope. When the block ends, the scope is <strong>popped</strong>, and all identifiers declared within it are no longer accessible. The symbol table entries remain (for error reporting purposes) but are marked inactive.</p>
+    <div class="code-block">
+<span class="kw">int</span> <span class="id">x</span> = 10;           <span style="color:#6b6778">// scope: Global  ← pushed to stack level 0</span><br>
+<br>
+<span class="kw">void</span> <span class="id">add</span>(<span class="kw">int</span> a, <span class="kw">int</span> b) { <span style="color:#6b6778">// scope: Function:add ← stack level 1</span><br>
+&nbsp;&nbsp;<span class="kw">int</span> <span class="id">result</span> = a + b;  <span style="color:#6b6778">// scope: Function:add ← stack level 1</span><br>
+&nbsp;&nbsp;<span class="ok">return result;</span><br>
+}                        <span style="color:#6b6778">// ← stack level 1 popped; result, a, b gone</span><br>
+<br>
+<span class="err">int r = result;          // ❌ result is out of scope here</span>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--amber)">
+    <h3>The Three Scope Levels</h3>
+    <p>Most compiled languages use at least three layers of scope, all tracked in the symbol table:</p>
+    <div class="table-wrap" style="margin:12px 0 0 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Scope Level</th>
+            <th>Where Declared</th>
+            <th>Who Can Access</th>
+            <th>Memory Region</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge global">Global</span></td>
+            <td>Outside all functions</td>
+            <td>Any function, any file</td>
+            <td>Data segment (heap-adjacent)</td>
+          </tr>
+          <tr>
+            <td><span class="badge local">Function / Local</span></td>
+            <td>Inside a function body</td>
+            <td>Only within that function</td>
+            <td>Stack frame (temporary)</td>
+          </tr>
+          <tr>
+            <td><span class="badge param">Parameter</span></td>
+            <td>Function signature</td>
+            <td>Only within that function</td>
+            <td>Stack frame (passed by caller)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--green)">
+    <h3>Shadowing — When Names Collide Across Scopes</h3>
+    <p>A variable in an inner scope can share the same name as one in an outer scope. This is called <strong>shadowing</strong>. The symbol table resolves this by always searching the <em>innermost active scope first</em>. The outer variable is temporarily hidden, but not destroyed — it becomes visible again once the inner scope exits.</p>
+    <div class="code-block">
+<span class="kw">int</span> <span class="id">x</span> = 100;          <span style="color:#6b6778">// Global x — address 0x1000</span><br>
+<br>
+<span class="kw">void</span> <span class="id">foo</span>() {<br>
+&nbsp;&nbsp;<span class="kw">int</span> <span class="id">x</span> = 42;         <span style="color:#6b6778">// Local x — shadows global x</span><br>
+&nbsp;&nbsp;<span class="ok">print(x);</span>           <span style="color:#6b6778">// prints 42, not 100</span><br>
+}<br>
+<br>
+<span class="ok">print(x);</span>             <span style="color:#6b6778">// back to global — prints 100</span>
+    </div>
+    <p style="margin-top:10px;margin-bottom:0;font-size:13px">The symbol table keeps <em>both</em> entries for <code style="font-family:var(--mono)">x</code> — distinguished by their scope column — so the compiler always knows which one is active at any given point.</p>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--red);margin-bottom:0">
+    <h3>Block Scope — Nested Scopes Inside Functions</h3>
+    <p>Scope isn't limited to functions. Every pair of curly braces <code style="font-family:var(--mono)">{ }</code> creates a new block scope — including loops and conditionals. The symbol table tracks the nesting depth, sometimes called the <strong>scope level</strong> or <strong>depth counter</strong>.</p>
+    <div class="code-block">
+<span class="kw">void</span> <span class="id">example</span>() {               <span style="color:#6b6778">// scope depth 1</span><br>
+&nbsp;&nbsp;<span class="kw">int</span> <span class="id">total</span> = 0;<br>
+<br>
+&nbsp;&nbsp;<span class="kw">for</span> (<span class="kw">int</span> <span class="id">i</span> = 0; i &lt; 10; i++) { <span style="color:#6b6778">// scope depth 2 — i lives here</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> <span class="id">temp</span> = i * 2;             <span style="color:#6b6778">// scope depth 2 — temp lives here</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;total += temp;<br>
+&nbsp;&nbsp;}                               <span style="color:#6b6778">// depth 2 popped — i and temp gone</span><br>
+<br>
+&nbsp;&nbsp;<span class="err">print(i);                       // ❌ i is out of scope</span><br>
+}
+    </div>
+  </div>
+</section>
+
+<!-- SEMANTIC -->
+<section id="semantic">
+  <div class="tag">Section 4</div>
+  <h1>Why It Matters — Semantic Analysis</h1>
+  <p class="subtitle">The symbol table turns the compiler from a grammar checker into a fully intelligent code verifier. Click each error type to expand the example and explanation.</p>
+
+  <div class="checks">
+    <div class="check-card" onclick="toggleCheck(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCheck(this)">
+      <div class="check-head red">🔴 Undeclared Identifier</div>
+      <div class="check-body">
+        <p>The compiler looks up every identifier it encounters in the symbol table. If it finds no entry, it immediately raises an <strong>undeclared identifier</strong> error — the program cannot continue compilation.</p>
+        <div class="code-block">
+<span class="kw">int</span> x = 5;<br>
+<span class="kw">int</span> y = 10;<br>
+<span class="err">int result = x + z;  // ❌ z was never declared</span>
         </div>
+        <p style="margin-top:12px;margin-bottom:6px"><strong>What the compiler does:</strong></p>
+        <p style="margin-bottom:6px">1. Encounters <code style="font-family:var(--mono)">z</code> on line 3 during semantic analysis.<br>
+        2. Looks up <code style="font-family:var(--mono)">z</code> in the symbol table — no entry found at any scope level.<br>
+        3. Raises: <code style="font-family:var(--mono);background:var(--red-light);color:var(--red);padding:2px 5px;border-radius:4px">error: 'z' undeclared</code><br>
+        4. Compilation halts — no output is generated.</p>
+        <p style="margin-bottom:0;font-size:13px;color:var(--muted)">This prevents runtime crashes from reading uninitialised memory — a security risk in languages like C.</p>
       </div>
-
-      <div class="card">
-        <div class="card-title">Example Symbol Table</div>
-        <table>
-          <thead><tr><th>Name</th><th>Type</th><th>Scope</th><th>Address</th><th>Info</th></tr></thead>
-          <tbody>
-            <tr><td>x</td><td class="blue">int</td><td class="green">Global</td><td>1000</td><td>Variable</td></tr>
-            <tr><td>y</td><td class="blue">int</td><td class="green">Global</td><td>1004</td><td>Variable</td></tr>
-            <tr><td>sum</td><td class="blue">int</td><td class="orange">Fn: add</td><td>1008</td><td>Local Var</td></tr>
-            <tr><td>a</td><td class="blue">int</td><td class="orange">Fn: add</td><td>1012</td><td>Param</td></tr>
-            <tr><td>b</td><td class="blue">int</td><td class="orange">Fn: add</td><td>1016</td><td>Param</td></tr>
-          </tbody>
-        </table>
-      </div>
-
     </div>
-  </section>
 
-  <!-- SECTION 2 -->
-  <section class="section" id="s2" data-nav="1">
-    <div class="section-header">
-      <span class="section-num">02</span>
-      <span class="section-title">The 5-Step Pipeline</span>
-    </div>
-    <div class="grid">
-
-      <div class="summary" style="border-left-color: var(--green);">
-        <p>The symbol table is built through a <strong>five-step pipeline</strong>: source code is tokenized, parsed for declarations, identifiers are stored with their attributes, the table is displayed, and finally used for <strong>semantic validation</strong>. Each step feeds the next.</p>
-      </div>
-
-      <div class="card full">
-        <div class="card-title">Pipeline Overview</div>
-        <div class="flow-chart">
-          <div class="flow-step blue">
-            <strong>1. Lexical Analysis</strong>
-            <p>Tokenize raw source code into a stream of tokens.</p>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step green">
-            <strong>2. Parsing</strong>
-            <p>Analyze tokens and build the syntax structure.</p>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step orange">
-            <strong>3. Store Identifiers</strong>
-            <p>Insert names, types, scopes, and addresses into the symbol table.</p>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step gray">
-            <strong>4. Display Table</strong>
-            <p>Render the populated symbol table for lookup and review.</p>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step red">
-            <strong>5. Semantic Analysis</strong>
-            <p>Lookup identifiers, validate types, and catch semantic errors.</p>
-          </div>
+    <div class="check-card" onclick="toggleCheck(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCheck(this)">
+      <div class="check-head amber">🟡 Redeclaration Error</div>
+      <div class="check-body">
+        <p>When the compiler attempts to insert a new identifier into the symbol table, it first checks whether that name already exists in the <em>current scope</em>. If it does, declaring it again is an error — two entries with the same name would create ambiguity.</p>
+        <div class="code-block">
+<span class="kw">int</span> <span class="id">x</span> = 5;<br>
+<span class="err">int x = 10;      // ❌ x already in symbol table at this scope</span><br>
+<br>
+<span style="color:#6b6778">// But this is fine — different scope:</span><br>
+<span class="kw">void</span> <span class="id">foo</span>() {<br>
+&nbsp;&nbsp;<span class="kw">int</span> <span class="id">x</span> = 99;   <span style="color:#6b6778">// ✅ new scope, new entry allowed</span><br>
+}
         </div>
+        <p style="margin-top:12px;margin-bottom:6px"><strong>What the compiler does:</strong></p>
+        <p style="margin-bottom:0">1. Sees <code style="font-family:var(--mono)">int x = 10;</code> and attempts to insert <code style="font-family:var(--mono)">x</code> into the global scope.<br>
+        2. Finds <code style="font-family:var(--mono)">x</code> already exists at scope level 0.<br>
+        3. Raises: <code style="font-family:var(--mono);background:var(--amber-light);color:var(--amber);padding:2px 5px;border-radius:4px">error: redeclaration of 'x'</code><br>
+        4. Note: the same name in a <em>different</em> scope (like inside <code style="font-family:var(--mono)">foo()</code>) is allowed — it gets its own separate row in the table.</p>
       </div>
-
-      <div class="card full">
-        <div class="card-title">Code Examples Per Step</div>
-        <table>
-          <thead><tr><th>Step</th><th>Code / Operation</th><th>Result</th></tr></thead>
-          <tbody>
-            <tr><td class="blue">Lexical</td><td><code class="code">int x = 10 + y;</code></td><td>Tokens: INT, ID(x), ASSIGN, NUM(10), PLUS, ID(y), SEMI</td></tr>
-            <tr><td class="green">Parsing</td><td><code class="code">int x;</code> → declaration node</td><td>Flags as new identifier — triggers insert()</td></tr>
-            <tr><td class="orange">Store</td><td><code class="code">insert("x", int, global, 1000)</code></td><td>New row added to symbol table</td></tr>
-            <tr><td class="gray">Display</td><td>Print all rows</td><td>Name | Type | Scope | Address | Info</td></tr>
-            <tr><td class="red">Semantic</td><td><code class="code">lookup("y", global)</code></td><td>Returns entry or null — error if null</td></tr>
-          </tbody>
-        </table>
-      </div>
-
     </div>
-  </section>
 
-  <!-- SECTION 3 -->
-  <section class="section" id="s3" data-nav="2">
-    <div class="section-header">
-      <span class="section-num">03</span>
-      <span class="section-title">Scope Management</span>
-    </div>
-    <div class="grid">
-
-      <div class="summary" style="border-left-color: var(--orange);">
-        <p>Scope defines <strong>where an identifier is valid</strong>. The compiler enters a new scope on <code class="code">{</code> and exits on <code class="code">}</code>. Three levels exist: <strong>global, function,</strong> and <strong>block</strong>. Accessing a variable outside its scope causes a lookup failure and a compiler error.</p>
-        <p>Symbol tables manage this by recording declarations in nested scope levels and resolving names from the innermost active scope outward through the scope chain.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Scope Nesting</div>
-        <div class="scope-wrap">
-          <div class="sblock" style="border-color:#f0c070; background:#fffbf0;">
-            <div class="slabel" style="color:#b8860b;">Global Scope</div>
-            <div class="stags">
-              <span class="stag" style="background:#fef3e6; color:#e67e22;">x : int</span>
-              <span class="stag" style="background:#fef3e6; color:#e67e22;">y : int</span>
-            </div>
-            <div class="sblock" style="border-color:#aac4ee; background:#f0f6ff; margin-top:9px;">
-              <div class="slabel" style="color:#1a5fac;">Function Scope — add()</div>
-              <div class="stags">
-                <span class="stag" style="background:#e8f0fd; color:#1a73e8;">sum</span>
-                <span class="stag" style="background:#e8f0fd; color:#1a73e8;">a (param)</span>
-                <span class="stag" style="background:#e8f0fd; color:#1a73e8;">b (param)</span>
-              </div>
-              <div class="sblock" style="border-color:#99d4ad; background:#f0faf4; margin-top:8px;">
-                <div class="slabel" style="color:#1a7a40;">Block Scope — if { }</div>
-                <div class="stags">
-                  <span class="stag" style="background:#e6f4ec; color:#1e8a4c;">temp : int</span>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="check-card" onclick="toggleCheck(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCheck(this)">
+      <div class="check-head purple">🟣 Type Mismatch</div>
+      <div class="check-body">
+        <p>The <strong>Type</strong> column in the symbol table lets the compiler verify that every operation involves compatible data types. Adding an integer to a string, or assigning a float to a boolean, are all caught here — before a single byte of machine code is emitted.</p>
+        <div class="code-block">
+<span class="kw">int</span>    <span class="id">x</span> = 5;<br>
+<span class="kw">string</span> <span class="id">s</span> = <span class="ok">"hello"</span>;<br>
+<span class="err">int r = x + s;   // ❌ int + string — incompatible types</span><br>
+<br>
+<span style="color:#6b6778">// Another common mismatch:</span><br>
+<span class="kw">float</span>  <span class="id">f</span> = 3.14;<br>
+<span class="err">bool   b = f;    // ❌ cannot assign float to bool</span>
         </div>
+        <p style="margin-top:12px;margin-bottom:6px"><strong>What the compiler does:</strong></p>
+        <p style="margin-bottom:6px">1. Evaluates the expression <code style="font-family:var(--mono)">x + s</code>.<br>
+        2. Looks up <code style="font-family:var(--mono)">x</code> → type: <code style="font-family:var(--mono)">int</code>. Looks up <code style="font-family:var(--mono)">s</code> → type: <code style="font-family:var(--mono)">string</code>.<br>
+        3. Checks arithmetic rules — <code style="font-family:var(--mono)">int + string</code> is not permitted.<br>
+        4. Raises: <code style="font-family:var(--mono);background:var(--purple-light);color:var(--purple);padding:2px 5px;border-radius:4px">error: invalid operands to binary +</code></p>
+        <p style="margin-bottom:0;font-size:13px;color:var(--muted)">Some languages (like JavaScript) allow implicit type coercion instead of erroring — but compiled languages like C and Java enforce strict type safety here.</p>
       </div>
-
-      <div class="card">
-        <div class="card-title">Scope Levels</div>
-        <table>
-          <thead><tr><th>Level</th><th>Declared In</th><th>Visible In</th><th>Variables</th></tr></thead>
-          <tbody>
-            <tr><td class="orange">Global</td><td>Outside all functions</td><td>Entire program</td><td>x, y</td></tr>
-            <tr><td class="blue">Function</td><td>Inside a function</td><td>That function only</td><td>sum, a, b</td></tr>
-            <tr><td class="green">Block</td><td>Inside { } block</td><td>That block only</td><td>temp</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card full">
-        <div class="card-title">Shadowing and Lookup Chain</div>
-        <table>
-          <thead><tr><th>Code Example</th><th>Lookup Result</th><th>Why</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><code class="code">int x; void f() { int x; }</code></td>
-              <td class="blue">Inner x</td>
-              <td>Inner declaration shadows outer scope.</td>
-            </tr>
-            <tr>
-              <td><code class="code">int a; void f() { use a; }</code></td>
-              <td class="green">Global a</td>
-              <td>Lookup falls back to outer scope when not found locally.</td>
-            </tr>
-            <tr>
-              <td><code class="code">void f() { use y; }</code></td>
-              <td class="red">Error</td>
-              <td>No matching declaration exists in any active scope.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card full">
-        <div class="card-title">Scope Rules and Behaviour</div>
-        <table>
-          <thead><tr><th>Situation</th><th>Compiler Action</th><th>Outcome</th></tr></thead>
-          <tbody>
-            <tr><td>Variable declared at top level</td><td>Insert into global table</td><td class="green">Accessible everywhere</td></tr>
-            <tr><td>Variable declared inside function</td><td>Insert into function-level table</td><td class="blue">Accessible within function only</td></tr>
-            <tr><td>Block exits ( } )</td><td>Block scope table destroyed</td><td class="orange">Block variables freed from memory</td></tr>
-            <tr><td>Same name in different scopes</td><td>Separate entries per scope table</td><td class="green">No conflict — resolved by scope chain</td></tr>
-            <tr><td>Variable accessed outside its scope</td><td>lookup() returns null</td><td class="red">Scope violation error raised</td></tr>
-          </tbody>
-        </table>
-      </div>
-
     </div>
-  </section>
 
-  <!-- SECTION 4 -->
-  <section class="section" id="s4" data-nav="3">
-    <div class="section-header">
-      <span class="section-num">04</span>
-      <span class="section-title">Semantic Analysis and Errors</span>
+    <div class="check-card" onclick="toggleCheck(this)" tabindex="0" onkeydown="if(event.key==='Enter')toggleCheck(this)">
+      <div class="check-head green">🟢 Scope Violation</div>
+      <div class="check-body">
+        <p>The <strong>Scope</strong> column records exactly where each identifier is valid. If code tries to access a variable outside its declared scope, the compiler catches it — even if a variable with that name exists elsewhere.</p>
+        <div class="code-block">
+<span class="kw">void</span> <span class="id">add</span>(<span class="kw">int</span> a, <span class="kw">int</span> b) {<br>
+&nbsp;&nbsp;<span class="kw">int</span> <span class="id">result</span> = a + b;<br>
+}<br>
+<br>
+<span class="err">int r = result;  // ❌ result is scoped to add() only</span><br>
+<span class="err">int s = a + 1;   // ❌ a is a parameter of add(), not accessible here</span>
+        </div>
+        <p style="margin-top:12px;margin-bottom:6px"><strong>What the compiler does:</strong></p>
+        <p style="margin-bottom:6px">1. Encounters <code style="font-family:var(--mono)">result</code> outside of <code style="font-family:var(--mono)">add()</code>.<br>
+        2. Searches active scope stack — only global scope is active at this point.<br>
+        3. Finds <code style="font-family:var(--mono)">result</code> in the table but its scope is <code style="font-family:var(--mono)">Function: add</code>, which is currently inactive.<br>
+        4. Raises: <code style="font-family:var(--mono);background:var(--green-light);color:var(--green);padding:2px 5px;border-radius:4px">error: 'result' undeclared in this scope</code></p>
+        <p style="margin-bottom:0;font-size:13px;color:var(--muted)">Scope violations protect encapsulation — a function's internal variables are its own business and cannot leak outward.</p>
+      </div>
     </div>
-    <div class="grid">
+  </div>
 
-      <div class="summary" style="border-left-color: var(--red);">
-        <p>Once built, the symbol table is used to catch four types of <strong>semantic errors</strong>: undeclared variables, redeclarations, type mismatches, and scope violations. These are invisible to a syntax checker but immediately detectable through <strong>symbol table lookups</strong>.</p>
-      </div>
+  <hr class="divider">
 
-      <div class="card full">
-        <div class="card-title">Error Types</div>
-        <table>
-          <thead><tr><th>Error Type</th><th>Cause</th><th>Example</th><th>How Detected</th><th>Fix</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><span class="badge b-red">Undeclared Variable</span></td>
-              <td>Used before declared</td>
-              <td><code class="code">z = 5;</code></td>
-              <td>lookup("z") returns null</td>
-              <td class="green">Declare z first</td>
-            </tr>
-            <tr>
-              <td><span class="badge b-orange">Redeclaration</span></td>
-              <td>Same name in same scope</td>
-              <td><code class="code">int x; int x;</code></td>
-              <td>insert("x") finds duplicate</td>
-              <td class="green">Remove duplicate</td>
-            </tr>
-            <tr>
-              <td><span class="badge b-blue">Type Mismatch</span></td>
-              <td>Wrong type assigned</td>
-              <td><code class="code">int x = "hello";</code></td>
-              <td>Stored type int ≠ string</td>
-              <td class="green">Match types or cast</td>
-            </tr>
-            <tr>
-              <td><span class="badge b-gray">Scope Violation</span></td>
-              <td>Access outside scope</td>
-              <td><code class="code">use sum; // global</code></td>
-              <td>lookup("sum", global) → null</td>
-              <td class="green">Move access inside add()</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <h2>Mind Map — What the Table Powers</h2>
+  <div class="mindmap-wrap">
+    <svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, sans-serif">
+      <!-- Centre -->
+      <rect x="285" y="155" width="190" height="70" rx="10" fill="#1a1a2e"/>
+      <text x="380" y="184" text-anchor="middle" fill="white" font-weight="600" font-size="14">Semantic Analysis</text>
+      <text x="380" y="204" text-anchor="middle" fill="#a5b4fc" font-size="11">powered by symbol table</text>
 
-      <div class="card full">
-        <div class="card-title">Semantic Checks Performed by Compiler</div>
-        <table>
-          <thead><tr><th>Check</th><th>Symbol Table Operation</th><th>Pass Condition</th><th>Fail Result</th></tr></thead>
-          <tbody>
-            <tr><td>Variable used in expression</td><td><code class="code">lookup(name, scope)</code></td><td>Entry found in table</td><td class="red">Undeclared variable error</td></tr>
-            <tr><td>New variable declared</td><td><code class="code">insert(name, type, scope, addr)</code></td><td>Name not already in scope</td><td class="red">Redeclaration error</td></tr>
-            <tr><td>Assignment statement</td><td>Compare stored type vs assigned type</td><td>Types match</td><td class="red">Type mismatch error</td></tr>
-            <tr><td>Identifier accessed</td><td>Check scope of retrieved entry</td><td>Scope is accessible</td><td class="red">Scope violation error</td></tr>
-            <tr><td>Function called</td><td>Check parameter count and types</td><td>Signature matches</td><td class="red">Argument mismatch error</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- Top left -->
+      <line x1="285" y1="170" x2="160" y2="80" stroke="#dc2626" stroke-width="2"/>
+      <rect x="50" y="40" width="200" height="60" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="150" y="65" text-anchor="middle" fill="#991b1b" font-weight="600" font-size="12">Undeclared Variable</text>
+      <text x="150" y="83" text-anchor="middle" fill="#374151" font-size="11">Look up → not found → error</text>
 
+      <!-- Top right -->
+      <line x1="475" y1="170" x2="600" y2="80" stroke="#d97706" stroke-width="2"/>
+      <rect x="510" y="40" width="200" height="60" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+      <text x="610" y="65" text-anchor="middle" fill="#92400e" font-weight="600" font-size="12">Redeclaration Check</text>
+      <text x="610" y="83" text-anchor="middle" fill="#374151" font-size="11">Name already in scope → error</text>
+
+      <!-- Bottom left -->
+      <line x1="285" y1="210" x2="160" y2="300" stroke="#7c3aed" stroke-width="2"/>
+      <rect x="50" y="280" width="200" height="60" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+      <text x="150" y="305" text-anchor="middle" fill="#4c1d95" font-weight="600" font-size="12">Type Mismatch</text>
+      <text x="150" y="323" text-anchor="middle" fill="#374151" font-size="11">Type column → incompatible</text>
+
+      <!-- Bottom right -->
+      <line x1="475" y1="210" x2="600" y2="300" stroke="#16a34a" stroke-width="2"/>
+      <rect x="510" y="280" width="200" height="60" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="610" y="305" text-anchor="middle" fill="#14532d" font-weight="600" font-size="12">Scope Violation</text>
+      <text x="610" y="323" text-anchor="middle" fill="#374151" font-size="11">Scope column → out of bounds</text>
+    </svg>
+  </div>
+
+  <hr class="divider">
+
+  <h2>Real-World Compiler Output Examples</h2>
+  <p>This is what these errors actually look like when a real compiler (GCC / Clang) runs — the symbol table data maps directly to each message.</p>
+
+  <div class="card" style="border-left:4px solid var(--red)">
+    <h3>🔴 GCC — Undeclared Identifier Output</h3>
+    <div class="code-block">
+<span style="color:#6b6778">$ gcc program.c</span><br>
+<span class="err">program.c:3:22: error: 'z' undeclared (first use in this function)</span><br>
+<span class="err">    3 |   int result = x + z;</span><br>
+<span class="err">      |                    ^</span><br>
+<span style="color:#6b6778">program.c:3:22: note: each undeclared identifier is reported only once</span>
     </div>
-  </section>
+    <p style="margin-top:10px;margin-bottom:0;font-size:13px;color:#374151">The caret <code style="font-family:var(--mono)">^</code> points exactly to the unknown identifier. The compiler knows this because the symbol table has no entry for <code style="font-family:var(--mono)">z</code>, so it can report line and column with precision.</p>
+  </div>
 
-</main>
+  <div class="card" style="border-left:4px solid var(--amber)">
+    <h3>🟡 GCC — Redeclaration Output</h3>
+    <div class="code-block">
+<span style="color:#6b6778">$ gcc program.c</span><br>
+<span class="err">program.c:2:7: error: redeclaration of 'x' with no linkage</span><br>
+<span class="err">    2 |   int x = 10;</span><br>
+<span class="err">      |       ^</span><br>
+<span style="color:#6b6778">program.c:1:7: note: previous declaration of 'x' was here</span><br>
+<span style="color:#6b6778">    1 |   int x = 5;</span><br>
+<span style="color:#6b6778">      |       ^</span>
+    </div>
+    <p style="margin-top:10px;margin-bottom:0;font-size:13px;color:#374151">The compiler shows <em>both</em> the conflicting declaration and where the original was first recorded — directly from the symbol table's line number column.</p>
+  </div>
 
-<footer class="footer">
-  Symbol Table Implementation &nbsp;·&nbsp; Syllabus: Semantic Analysis &nbsp;·&nbsp; Compiler Design
-</footer>
+  <div class="card" style="border-left:4px solid var(--purple)">
+    <h3>🟣 GCC — Type Mismatch Output</h3>
+    <div class="code-block">
+<span style="color:#6b6778">$ gcc program.c</span><br>
+<span class="err">program.c:4:18: error: invalid operands to binary + (have 'int' and 'char *')</span><br>
+<span class="err">    4 |   int r = x + s;</span><br>
+<span class="err">      |             ^~~</span>
+    </div>
+    <p style="margin-top:10px;margin-bottom:0;font-size:13px;color:#374151">The error message includes both type names — <code style="font-family:var(--mono)">int</code> and <code style="font-family:var(--mono)">char *</code> — which were retrieved directly from the Type column of the symbol table entries for <code style="font-family:var(--mono)">x</code> and <code style="font-family:var(--mono)">s</code>.</p>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--green);margin-bottom:0">
+    <h3>🟢 GCC — Scope Violation Output</h3>
+    <div class="code-block">
+<span style="color:#6b6778">$ gcc program.c</span><br>
+<span class="err">program.c:7:11: error: 'result' undeclared (first use in this function)</span><br>
+<span class="err">    7 |   int r = result;</span><br>
+<span class="err">      |           ^~~~~~</span><br>
+<span style="color:#6b6778">program.c:3:7: note: 'result' was declared here</span><br>
+<span style="color:#6b6778">    3 |     int result = a + b;</span><br>
+<span style="color:#6b6778">      |         ^~~~~~</span>
+    </div>
+    <p style="margin-top:10px;margin-bottom:0;font-size:13px;color:#374151">Even though <code style="font-family:var(--mono)">result</code> exists in the symbol table, its Scope column shows it belongs to <code style="font-family:var(--mono)">Function: add</code>. The compiler's note helpfully points to where it <em>was</em> declared — pulled from the Line Number column.</p>
+  </div>
+
+  <hr class="divider">
+  <div class="card" style="margin-bottom:0;background:var(--text);border-color:var(--text)">
+    <h3 style="color:white">The Bottom Line</h3>
+    <p style="color:#a5b4fc;margin-bottom:0">Every compiler error message you have ever read — with its line number, variable name, and type information — is powered by data sitting in a symbol table. The table is not a passive record. It is an active, constantly-queried structure that makes compilers intelligent.</p>
+  </div>
+</section>
 
 <script>
-  const sections = document.querySelectorAll('.section');
-  const navItems = document.querySelectorAll('.nav-item');
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-        const idx = e.target.dataset.nav;
-        navItems.forEach((n, i) => n.classList.toggle('active', i == idx));
-      }
-    });
-  }, { threshold: 0.12 });
-  sections.forEach(s => obs.observe(s));
-
-  function goTo(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-
-  const symbolExamples = [
+  const stepData = [
     {
-      code: 'int x = 10;',
-      rows: [
-        { name: 'x', type: 'int', scope: 'Global', addr: '1000', info: 'Variable' }
-      ]
+      title: "Step 1 — Lexical Analysis",
+      text: "The compiler reads raw source code and breaks it into tokens — small labelled units. A token can be a keyword like <code style='font-family:var(--mono)'>int</code>, an identifier like a variable name, or a symbol like <code style='font-family:var(--mono)'>=</code>. This is the scanning and labelling phase."
     },
     {
-      code: 'int add(int a, int b) { int sum = a + b; }',
-      rows: [
-        { name: 'add', type: 'int', scope: 'Global', addr: '1000', info: 'Function' },
-        { name: 'a', type: 'int', scope: 'Fn: add', addr: '1004', info: 'Param' },
-        { name: 'b', type: 'int', scope: 'Fn: add', addr: '1008', info: 'Param' },
-        { name: 'sum', type: 'int', scope: 'Fn: add', addr: '1012', info: 'Local Var' }
-      ]
+      title: "Step 2 — Parsing",
+      text: "The compiler takes those tokens and understands their structure — identifying which tokens represent declarations, assignments, or function calls. This is where it recognises <em>\"this is a new identifier being declared.\"</em>"
     },
     {
-      code: 'float pi = 3.14; char c = \'A\';',
-      rows: [
-        { name: 'pi', type: 'float', scope: 'Global', addr: '1000', info: 'Variable' },
-        { name: 'c', type: 'char', scope: 'Global', addr: '1004', info: 'Variable' }
-      ]
+      title: "Step 3 — Store Identifiers",
+      text: "Once a declaration is recognised, the compiler immediately records that identifier into the symbol table — capturing name, type, scope, and memory location all at once. This is the core step where the table gets populated."
+    },
+    {
+      title: "Step 4 — Display Symbol Table",
+      text: "After parsing is complete, the full symbol table can be displayed in a structured tabular format — making it easy to inspect every identifier found in the program. This is what you see in the Structure section."
+    },
+    {
+      title: "Step 5 — Semantic Analysis",
+      text: "The symbol table proves its full value here. The compiler uses it to check for undeclared identifiers, redeclarations in the same scope, type mismatches, and scope violations — catching all errors before output is generated."
     }
   ];
 
-  function chooseSnippet(index) {
-    const buttons = document.querySelectorAll('.code-btn');
-    buttons.forEach((btn, idx) => btn.classList.toggle('active', idx === index));
-
-    const example = symbolExamples[index];
-    document.getElementById('snippet-code').textContent = example.code;
-
-    const tbody = document.querySelector('#symbol-output-table tbody');
-    tbody.innerHTML = '';
-    example.rows.forEach(row => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${row.name}</td>
-        <td><span class="type">${row.type}</span></td>
-        <td><span class="scope">${row.scope}</span></td>
-        <td>${row.addr}</td>
-        <td><span class="info">${row.info}</span></td>
-      `;
-      tbody.appendChild(tr);
-    });
+  function show(id, btn) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
   }
 
-  chooseSnippet(0);
+  function toggleCard(el) {
+    el.classList.toggle('open');
+    const toggle = el.querySelector('.toggle');
+    toggle.textContent = el.classList.contains('open') ? '▾ Show less' : '▸ Show more';
+  }
+
+  function selectStep(idx) {
+    const steps = document.querySelectorAll('.step');
+    steps.forEach((s, i) => s.classList.toggle('active', i === idx));
+    const detail = document.getElementById('step-detail');
+    detail.innerHTML = `<strong>${stepData[idx].title}</strong><br><br>${stepData[idx].text}`;
+    detail.classList.add('visible');
+  }
+
+  function toggleRow(id) {
+    const row = document.getElementById(id);
+    row.classList.toggle('visible');
+  }
+
+  function toggleCheck(el) {
+    const body = el.querySelector('.check-body');
+    body.classList.toggle('open');
+  }
 </script>
 </body>
 </html>
