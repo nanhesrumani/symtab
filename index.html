@@ -200,6 +200,87 @@
   .flow-step.gray { background: #f4f4f4; border-color: #dcdcdc; color: var(--gray); }
   .flow-step.red { background: #fdecea; border-color: #f7c5be; color: var(--red); }
 
+  .interactive-panel {
+    display: grid;
+    gap: 16px;
+  }
+
+  .code-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .code-btn {
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .code-btn.active,
+  .code-btn:hover {
+    border-color: var(--blue);
+    background: var(--blue-light);
+    color: var(--blue);
+  }
+
+  .code-preview {
+    background: #f4f4f4;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #222;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  .symbol-output {
+    overflow-x: auto;
+  }
+
+  .symbol-output table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .symbol-output th,
+  .symbol-output td {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .symbol-output th {
+    background: #f5f7ff;
+    color: var(--blue);
+    font-weight: 700;
+  }
+
+  .symbol-output td {
+    color: var(--text2);
+  }
+
+  .symbol-output td span {
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .symbol-output td .type { background: #e8f0fd; color: var(--blue); }
+  .symbol-output td .scope { background: #e6f4ec; color: var(--green); }
+  .symbol-output td .info { background: #fdecea; color: var(--red); }
+
   /* TABLE CARD */
   .card {
     background: var(--white);
@@ -358,6 +439,24 @@
         </table>
       </div>
 
+      <div class="card full">
+        <div class="card-title">Build a Symbol Table</div>
+        <div class="interactive-panel">
+          <div class="code-buttons">
+            <button class="code-btn active" onclick="chooseSnippet(0)">int x = 10;</button>
+            <button class="code-btn" onclick="chooseSnippet(1)">int add(int a, int b) { int sum = a + b; }</button>
+            <button class="code-btn" onclick="chooseSnippet(2)">float pi = 3.14; char c = 'A';</button>
+          </div>
+          <div class="code-preview" id="snippet-code">int x = 10;</div>
+          <div class="symbol-output">
+            <table id="symbol-output-table">
+              <thead><tr><th>Name</th><th>Type</th><th>Scope</th><th>Address</th><th>Info</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">Example Symbol Table</div>
         <table>
@@ -444,6 +543,7 @@
 
       <div class="summary" style="border-left-color: var(--orange);">
         <p>Scope defines <strong>where an identifier is valid</strong>. The compiler enters a new scope on <code class="code">{</code> and exits on <code class="code">}</code>. Three levels exist: <strong>global, function,</strong> and <strong>block</strong>. Accessing a variable outside its scope causes a lookup failure and a compiler error.</p>
+        <p>Symbol tables manage this by recording declarations in nested scope levels and resolving names from the innermost active scope outward through the scope chain.</p>
       </div>
 
       <div class="card">
@@ -481,6 +581,30 @@
             <tr><td class="orange">Global</td><td>Outside all functions</td><td>Entire program</td><td>x, y</td></tr>
             <tr><td class="blue">Function</td><td>Inside a function</td><td>That function only</td><td>sum, a, b</td></tr>
             <tr><td class="green">Block</td><td>Inside { } block</td><td>That block only</td><td>temp</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card full">
+        <div class="card-title">Shadowing and Lookup Chain</div>
+        <table>
+          <thead><tr><th>Code Example</th><th>Lookup Result</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code class="code">int x; void f() { int x; }</code></td>
+              <td class="blue">Inner x</td>
+              <td>Inner declaration shadows outer scope.</td>
+            </tr>
+            <tr>
+              <td><code class="code">int a; void f() { use a; }</code></td>
+              <td class="green">Global a</td>
+              <td>Lookup falls back to outer scope when not found locally.</td>
+            </tr>
+            <tr>
+              <td><code class="code">void f() { use y; }</code></td>
+              <td class="red">Error</td>
+              <td>No matching declaration exists in any active scope.</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -589,6 +713,55 @@
   sections.forEach(s => obs.observe(s));
 
   function goTo(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+
+  const symbolExamples = [
+    {
+      code: 'int x = 10;',
+      rows: [
+        { name: 'x', type: 'int', scope: 'Global', addr: '1000', info: 'Variable' }
+      ]
+    },
+    {
+      code: 'int add(int a, int b) { int sum = a + b; }',
+      rows: [
+        { name: 'add', type: 'int', scope: 'Global', addr: '1000', info: 'Function' },
+        { name: 'a', type: 'int', scope: 'Fn: add', addr: '1004', info: 'Param' },
+        { name: 'b', type: 'int', scope: 'Fn: add', addr: '1008', info: 'Param' },
+        { name: 'sum', type: 'int', scope: 'Fn: add', addr: '1012', info: 'Local Var' }
+      ]
+    },
+    {
+      code: 'float pi = 3.14; char c = \'A\';',
+      rows: [
+        { name: 'pi', type: 'float', scope: 'Global', addr: '1000', info: 'Variable' },
+        { name: 'c', type: 'char', scope: 'Global', addr: '1004', info: 'Variable' }
+      ]
+    }
+  ];
+
+  function chooseSnippet(index) {
+    const buttons = document.querySelectorAll('.code-btn');
+    buttons.forEach((btn, idx) => btn.classList.toggle('active', idx === index));
+
+    const example = symbolExamples[index];
+    document.getElementById('snippet-code').textContent = example.code;
+
+    const tbody = document.querySelector('#symbol-output-table tbody');
+    tbody.innerHTML = '';
+    example.rows.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${row.name}</td>
+        <td><span class="type">${row.type}</span></td>
+        <td><span class="scope">${row.scope}</span></td>
+        <td>${row.addr}</td>
+        <td><span class="info">${row.info}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  chooseSnippet(0);
 </script>
 </body>
 </html>
